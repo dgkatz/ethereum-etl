@@ -23,6 +23,7 @@
 
 import json
 import socket
+from concurrent.futures import ThreadPoolExecutor
 
 from web3.providers.ipc import IPCProvider
 from web3.utils.threads import (
@@ -41,7 +42,11 @@ except ImportError:
 class BatchIPCProvider(IPCProvider):
     _socket = None
 
-    def make_batch_request(self, text):
+    @property
+    def batching_supported(self):
+        return True
+
+    def mod_make_request(self, text):
         request = text.encode('utf-8')
         with self._lock, self._socket as sock:
             try:
@@ -72,6 +77,16 @@ class BatchIPCProvider(IPCProvider):
                     else:
                         timeout.sleep(0)
                         continue
+
+    def make_batch_request(self, text):
+        if not self.batching_supported:
+            responses = []
+            with ThreadPoolExecutor() as pool:
+                for response in pool.map(self.mod_make_request,
+                                         (json.dumps(rpc) for rpc in json.loads(text))):
+                    responses.append(response)
+            return responses
+        return self.mod_make_request(text=text)
 
 
 # A valid JSON RPC response can only end in } or ] http://www.jsonrpc.org/specification

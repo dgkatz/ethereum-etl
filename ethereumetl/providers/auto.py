@@ -25,6 +25,7 @@ from urllib.parse import urlparse
 
 from web3 import IPCProvider, HTTPProvider
 
+from ethereumetl.providers.aws import AWSHTTPProvider
 from ethereumetl.providers.ipc import BatchIPCProvider
 from ethereumetl.providers.rpc import BatchHTTPProvider
 
@@ -40,6 +41,8 @@ def get_provider_from_uri(uri_string, timeout=DEFAULT_TIMEOUT, batch=False):
             return IPCProvider(uri.path, timeout=timeout)
     elif uri.scheme == 'http' or uri.scheme == 'https':
         request_kwargs = {'timeout': timeout}
+        if uri_string.endswith("ethereum.managedblockchain.us-east-1.amazonaws.com"):
+            return AWSHTTPProvider(uri_string, request_kwargs=request_kwargs)
         if batch:
             return BatchHTTPProvider(uri_string, request_kwargs=request_kwargs)
         else:

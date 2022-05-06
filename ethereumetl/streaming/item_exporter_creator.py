@@ -88,7 +88,17 @@ def create_item_exporter(output):
             'contract': 'contracts',
             'token': 'tokens',
         })
-
+    elif item_exporter_type == ItemExporterType.KINESIS:
+        from blockchainetl.jobs.exporters.kinesis_exporter import KinesisItemExporter
+        item_exporter = KinesisItemExporter(item_type_to_topic_mapping={
+            'block': 'ethereum_blocks',
+            'transaction': 'ethereum_transactions',
+            'log': 'ethereum_logs',
+            'token_transfer': 'ethereum_token_transfers',
+            'trace': 'ethereum_traces',
+            'contract': 'ethereum_contracts',
+            'token': 'ethereum_tokens',
+        })
     else:
         raise ValueError('Unable to determine item exporter type for output ' + output)
 
@@ -115,6 +125,8 @@ def determine_item_exporter_type(output):
         return ItemExporterType.POSTGRES
     elif output is not None and output.startswith('gs://'):
         return ItemExporterType.GCS
+    elif output is not None and output.startswith("kinesis"):
+        return ItemExporterType.KINESIS
     elif output is None or output == 'console':
         return ItemExporterType.CONSOLE
     else:
@@ -127,4 +139,5 @@ class ItemExporterType:
     GCS = 'gcs'
     CONSOLE = 'console'
     KAFKA = 'kafka'
+    KINESIS = 'kinesis'
     UNKNOWN = 'unknown'
