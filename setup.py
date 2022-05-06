@@ -40,7 +40,9 @@ setup(
         'click==7.1.2',
         'ethereum-dasm==0.1.4',
         'base58',
-        'requests'
+        'requests',
+        'boto3==1.21.46',
+        'requests-auth-aws-sigv4==0.7'
     ],
     extras_require={
         'streaming': [

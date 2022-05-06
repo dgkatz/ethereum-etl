@@ -4,8 +4,8 @@ from blockchainetl.jobs.exporters.console_item_exporter import ConsoleItemExport
 from blockchainetl.jobs.exporters.in_memory_item_exporter import InMemoryItemExporter
 from ethereumetl.enumeration.entity_type import EntityType
 from ethereumetl.jobs.export_blocks_job import ExportBlocksJob
+from ethereumetl.jobs.export_geth_traces_job import ExportGethTracesJob
 from ethereumetl.jobs.export_receipts_job import ExportReceiptsJob
-from ethereumetl.jobs.export_traces_job import ExportTracesJob
 from ethereumetl.jobs.extract_contracts_job import ExtractContractsJob
 from ethereumetl.jobs.extract_token_transfers_job import ExtractTokenTransfersJob
 from ethereumetl.jobs.extract_tokens_job import ExtractTokensJob
@@ -148,11 +148,11 @@ class EthStreamerAdapter:
 
     def _export_traces(self, start_block, end_block):
         exporter = InMemoryItemExporter(item_types=['trace'])
-        job = ExportTracesJob(
+        job = ExportGethTracesJob(
             start_block=start_block,
             end_block=end_block,
             batch_size=self.batch_size,
-            web3=ThreadLocalProxy(lambda: build_web3(self.batch_web3_provider)),
+            batch_web3_provider=self.batch_web3_provider,
             max_workers=self.max_workers,
             item_exporter=exporter
         )
