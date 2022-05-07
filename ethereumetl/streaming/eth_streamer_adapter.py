@@ -5,6 +5,7 @@ from blockchainetl.jobs.exporters.in_memory_item_exporter import InMemoryItemExp
 from ethereumetl.enumeration.entity_type import EntityType
 from ethereumetl.jobs.export_blocks_job import ExportBlocksJob
 from ethereumetl.jobs.export_geth_traces_job import ExportGethTracesJob
+from ethereumetl.jobs.extract_geth_traces_job import ExtractGethTracesJob
 from ethereumetl.jobs.export_receipts_job import ExportReceiptsJob
 from ethereumetl.jobs.extract_contracts_job import ExtractContractsJob
 from ethereumetl.jobs.extract_token_transfers_job import ExtractTokenTransfersJob
@@ -147,17 +148,26 @@ class EthStreamerAdapter:
         return token_transfers
 
     def _export_traces(self, start_block, end_block):
-        exporter = InMemoryItemExporter(item_types=['trace'])
-        job = ExportGethTracesJob(
+        geth_traces_exporter = InMemoryItemExporter(item_types=['trace'])
+        export_geth_traces_job = ExportGethTracesJob(
             start_block=start_block,
             end_block=end_block,
             batch_size=self.batch_size,
             batch_web3_provider=self.batch_web3_provider,
             max_workers=self.max_workers,
-            item_exporter=exporter
+            item_exporter=geth_traces_exporter
         )
-        job.run()
-        traces = exporter.get_items('trace')
+        export_geth_traces_job.run()
+        traces = geth_traces_exporter.get_items('trace')
+        traces_exporter = InMemoryItemExporter(item_types=['trace'])
+        extract_traces_job = ExtractGethTracesJob(
+            traces_iterable=traces,
+            batch_size=self.batch_size,
+            max_workers=self.max_workers,
+            item_exporter=traces_exporter
+        )
+        extract_traces_job.run()
+        traces = traces_exporter.get_items('trace')
         return traces
 
     def _export_contracts(self, traces):

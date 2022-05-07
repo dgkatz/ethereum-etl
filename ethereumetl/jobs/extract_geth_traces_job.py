@@ -20,10 +20,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from ethereumetl.executors.batch_work_executor import BatchWorkExecutor
 from blockchainetl.jobs.base_job import BaseJob
-from ethereumetl.mappers.trace_mapper import EthTraceMapper
+from ethereumetl.executors.batch_work_executor import BatchWorkExecutor
 from ethereumetl.mappers.geth_trace_mapper import EthGethTraceMapper
+from ethereumetl.mappers.trace_mapper import EthTraceMapper
+from ethereumetl.service.trace_id_calculator import calculate_trace_ids
+from ethereumetl.service.trace_status_calculator import calculate_trace_statuses
 
 
 class ExtractGethTracesJob(BaseJob):
@@ -51,9 +53,11 @@ class ExtractGethTracesJob(BaseJob):
         for geth_trace_dict in geth_traces:
             geth_trace = self.geth_trace_mapper.json_dict_to_geth_trace(geth_trace_dict)
             traces = self.trace_mapper.geth_trace_to_traces(geth_trace)
+            calculate_trace_statuses(traces)
+            calculate_trace_ids(traces)
             for trace in traces:
                 self.item_exporter.export_item(self.trace_mapper.trace_to_dict(trace))
-              
+
     def _end(self):
         self.batch_work_executor.shutdown()
         self.item_exporter.close()
