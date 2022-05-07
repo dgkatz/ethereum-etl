@@ -62,8 +62,10 @@ class ExportGethTracesJob(BaseJob):
 
     def _export_batch(self, block_number_batch):
         # Remove untraceable blocks
-        block_number_batch.remove(0)
-        block_number_batch.remove(DAOFORK_BLOCK_NUMBER)
+        if 0 in block_number_batch:
+            block_number_batch.remove(0)
+        if DAOFORK_BLOCK_NUMBER in block_number_batch:
+            block_number_batch.remove(DAOFORK_BLOCK_NUMBER)
 
         trace_block_rpc = list(generate_trace_block_by_number_json_rpc(block_number_batch))
         response = self.batch_web3_provider.make_batch_request(json.dumps(trace_block_rpc))
