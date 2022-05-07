@@ -27,7 +27,7 @@ from ethereumetl.json_rpc_requests import generate_trace_block_by_number_json_rp
 from blockchainetl.jobs.base_job import BaseJob
 from ethereumetl.mappers.geth_trace_mapper import EthGethTraceMapper
 from ethereumetl.utils import validate_range, rpc_response_to_result
-
+from ethereumetl.mainnet_daofork_state_changes import DAOFORK_BLOCK_NUMBER
 
 # Exports geth traces
 class ExportGethTracesJob(BaseJob):
@@ -61,6 +61,10 @@ class ExportGethTracesJob(BaseJob):
         )
 
     def _export_batch(self, block_number_batch):
+        # Remove untraceable blocks
+        block_number_batch.remove(0)
+        block_number_batch.remove(DAOFORK_BLOCK_NUMBER)
+
         trace_block_rpc = list(generate_trace_block_by_number_json_rpc(block_number_batch))
         response = self.batch_web3_provider.make_batch_request(json.dumps(trace_block_rpc))
 
