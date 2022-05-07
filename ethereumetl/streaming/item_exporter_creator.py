@@ -99,6 +99,10 @@ def create_item_exporter(output):
             'contract': 'ethereum_contracts',
             'token': 'ethereum_tokens',
         })
+    elif item_exporter_type == ItemExporterType.S3:
+        from blockchainetl.jobs.exporters.s3_exporter import S3ItemExporter
+        bucket, path = get_bucket_and_path_from_s3_output(output)
+        item_exporter = S3ItemExporter(bucket=bucket, prefix=path)
     else:
         raise ValueError('Unable to determine item exporter type for output ' + output)
 
@@ -107,6 +111,17 @@ def create_item_exporter(output):
 
 def get_bucket_and_path_from_gcs_output(output):
     output = output.replace('gs://', '')
+    bucket_and_path = output.split('/', 1)
+    bucket = bucket_and_path[0]
+    if len(bucket_and_path) > 1:
+        path = bucket_and_path[1]
+    else:
+        path = ''
+    return bucket, path
+
+
+def get_bucket_and_path_from_s3_output(output):
+    output = output.replace('s3://', '')
     bucket_and_path = output.split('/', 1)
     bucket = bucket_and_path[0]
     if len(bucket_and_path) > 1:
@@ -127,6 +142,8 @@ def determine_item_exporter_type(output):
         return ItemExporterType.GCS
     elif output is not None and output.startswith("kinesis"):
         return ItemExporterType.KINESIS
+    elif output is not None and output.startswith('s3://'):
+        return ItemExporterType.S3
     elif output is None or output == 'console':
         return ItemExporterType.CONSOLE
     else:
@@ -140,4 +157,5 @@ class ItemExporterType:
     CONSOLE = 'console'
     KAFKA = 'kafka'
     KINESIS = 'kinesis'
+    S3 = 's3'
     UNKNOWN = 'unknown'

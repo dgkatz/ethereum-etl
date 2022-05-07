@@ -29,9 +29,9 @@ class MultiItemExporter:
         for exporter in self.item_exporters:
             exporter.open()
 
-    def export_items(self, items):
+    def export_items(self, items, start_block: int, end_block: int):
         for exporter in self.item_exporters:
-            exporter.export_items(items)
+            exporter.export_items(items, start_block, end_block)
 
     def export_item(self, item):
         for exporter in self.item_exporters:
