@@ -8,6 +8,8 @@ import boto3
 
 from blockchainetl.jobs.exporters.converters.composite_item_converter import CompositeItemConverter
 
+KINESIS_BATCH_SIZE = 500
+
 
 class KinesisItemExporter:
 
@@ -19,7 +21,7 @@ class KinesisItemExporter:
     def open(self):
         pass
 
-    def export_items(self, items):
+    def export_items(self, items, start_block: int, end_block: int):
         with ThreadPoolExecutor() as pool:
             for kinesis_response in pool.map(self.export_item, items):
                 logging.debug(f"Kinesis export item response: {kinesis_response}")

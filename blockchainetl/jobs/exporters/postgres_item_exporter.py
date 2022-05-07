@@ -40,7 +40,7 @@ class PostgresItemExporter:
     def open(self):
         pass
 
-    def export_items(self, items):
+    def export_items(self, items, start_block: int, end_block: int):
         items_grouped_by_type = group_by_item_type(items)
 
         for item_type, insert_stmt in self.item_type_to_insert_stmt_mapping.items():

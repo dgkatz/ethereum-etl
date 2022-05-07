@@ -78,7 +78,7 @@ class GcsItemExporter:
     def open(self):
         pass
 
-    def export_items(self, items):
+    def export_items(self, items, start_block: int, end_block: int):
         block_bundles = self.build_block_bundles_func(items)
 
         for block_bundle in block_bundles:

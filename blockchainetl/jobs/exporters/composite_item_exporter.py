@@ -53,12 +53,14 @@ class CompositeItemExporter:
 
             self.counter_mapping[item_type] = AtomicCounter()
 
-    def export_items(self, items):
+    def export_items(self, items, start_block: int, end_block: int):
         for item in items:
             self.export_item(item)
 
     def export_item(self, item):
         item_type = item.get('type')
+        if item_type == 'transaction':
+            pass
         if item_type is None:
             raise ValueError('"type" key is not found in item {}'.format(repr(item)))
 
@@ -76,4 +78,11 @@ class CompositeItemExporter:
             close_silently(file)
             counter = self.counter_mapping[item_type]
             if counter is not None:
-                self.logger.info('{} items exported: {}'.format(item_type, counter.increment() - 1))
+                self.logger.info('{} items exported: {}'.format(item_type, counter.count))
+
+    def __enter__(self):
+        self.open()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
