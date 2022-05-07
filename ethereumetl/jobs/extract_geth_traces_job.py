@@ -54,7 +54,6 @@ class ExtractGethTracesJob(BaseJob):
             geth_trace = self.geth_trace_mapper.json_dict_to_geth_trace(geth_trace_dict)
             traces = self.trace_mapper.geth_trace_to_traces(geth_trace)
             calculate_trace_statuses(traces)
-            calculate_trace_ids(traces)
             for trace in traces:
                 self.item_exporter.export_item(self.trace_mapper.trace_to_dict(trace))
 
