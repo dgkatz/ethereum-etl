@@ -22,6 +22,7 @@
 
 
 import json
+import logging
 import socket
 from concurrent.futures import ThreadPoolExecutor
 
@@ -70,6 +71,10 @@ class BatchIPCProvider(IPCProvider):
                         try:
                             response = json.loads(raw_response.decode('utf-8'))
                         except JSONDecodeError:
+                            timeout.sleep(0)
+                            continue
+                        except RecursionError:
+                            logging.error(f"Failed to parse due to RecursionError: {raw_response.decode('utf-8')}")
                             timeout.sleep(0)
                             continue
                         else:
