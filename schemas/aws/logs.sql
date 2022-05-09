@@ -1,24 +1,26 @@
-CREATE EXTERNAL TABLE IF NOT EXISTS logs (
-    log_index BIGINT,
-    transaction_hash STRING,
-    transaction_index BIGINT,
-    block_hash STRING,
-    block_number BIGINT,
-    address STRING,
-    data STRING,
-    topics STRING
-)
-PARTITIONED BY (start_block BIGINT, end_block BIGINT)
-ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'
-WITH SERDEPROPERTIES (
-    'serialization.format' = ',',
-    'field.delim' = ',',
-    'escape.delim' = '\\'
-)
-STORED AS TEXTFILE
-LOCATION 's3://<your_bucket>/ethereumetl/export/logs'
+CREATE EXTERNAL TABLE `ethereum.log`(
+  `log_index` bigint,
+  `transaction_hash` string, 
+  `transaction_index` bigint, 
+  `address` string, 
+  `data` string, 
+  `topics` array<string>, 
+  `block_number` bigint, 
+  `block_timestamp` bigint, 
+  `block_hash` string, 
+  `item_id` string, 
+  `item_timestamp` string)
+ROW FORMAT SERDE 
+  'org.openx.data.jsonserde.JsonSerDe' 
+WITH SERDEPROPERTIES ( 
+  'paths'='address,block_hash,block_number,block_timestamp,data,item_id,item_timestamp,log_index,topics,transaction_hash,transaction_index')
+STORED AS INPUTFORMAT 
+  'org.apache.hadoop.mapred.TextInputFormat' 
+OUTPUTFORMAT 
+  'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+LOCATION
+  's3://<your bucket>/tables/log/'
 TBLPROPERTIES (
-  'skip.header.line.count' = '1'
-);
-
-MSCK REPAIR TABLE logs;
+  'classification'='json', 
+  'compressionType'='none'
+)

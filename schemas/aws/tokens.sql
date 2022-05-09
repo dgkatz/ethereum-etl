@@ -1,21 +1,25 @@
-CREATE EXTERNAL TABLE IF NOT EXISTS tokens (
-    address STRING,
-    symbol STRING,
-    name STRING,
-    decimals BIGINT,
-    total_supply DECIMAL(38,0)
-)
-PARTITIONED BY (start_block BIGINT, end_block BIGINT)
-ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'
-WITH SERDEPROPERTIES (
-    'serialization.format' = ',',
-    'field.delim' = ',',
-    'escape.delim' = '\\'
-)
-STORED AS TEXTFILE
-LOCATION 's3://<your_bucket>/ethereumetl/export/tokens'
+CREATE EXTERNAL TABLE `ethereum.token`(
+  `address` string,
+  `symbol` string,
+  `name` string,
+  `decimals` bigint,
+  `total_supply` DECIMAL(38,0),
+  `block_number` bigint,
+  `block_timestamp` bigint,
+  `block_hash` string,
+  `item_id` string,
+  `item_timestamp` string)
+ROW FORMAT SERDE 
+  'org.openx.data.jsonserde.JsonSerDe' 
+WITH SERDEPROPERTIES ( 
+  'paths'='address,block_hash,block_number,block_timestamp,decimals,item_id,item_timestamp,name,symbol,total_supply')
+STORED AS INPUTFORMAT 
+  'org.apache.hadoop.mapred.TextInputFormat' 
+OUTPUTFORMAT 
+  'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+LOCATION
+  's3://<your bucket>/tables/token/'
 TBLPROPERTIES (
-  'skip.header.line.count' = '1'
-);
-
-MSCK REPAIR TABLE tokens;
+  'classification'='json', 
+  'compressionType'='none'
+)

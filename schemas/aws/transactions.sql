@@ -1,27 +1,38 @@
-CREATE EXTERNAL TABLE IF NOT EXISTS transactions (
-    hash STRING,
-    nonce BIGINT,
-    block_hash STRING,
-    block_number BIGINT,
-    transaction_index BIGINT,
-    from_address STRING,
-    to_address STRING,
-    value DECIMAL(38,0),
-    gas BIGINT,
-    gas_price BIGINT,
-    input STRING
-)
-PARTITIONED BY (start_block BIGINT, end_block BIGINT)
-ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'
+CREATE EXTERNAL TABLE `ethereum.transaction`(
+  `hash` string,
+  `nonce` bigint,
+  `transaction_index` bigint,
+  `from_address` string,
+  `to_address` string,
+  `value` decimal(38,0),
+  `gas` bigint,
+  `gas_price` bigint,
+  `input` string,
+  `block_timestamp` bigint,
+  `block_number` bigint,
+  `block_hash` string,
+  `max_fee_per_gas` bigint,
+  `max_priority_fee_per_gas` bigint,
+  `transaction_type` int,
+  `receipt_cumulative_gas_used` bigint,
+  `receipt_gas_used` bigint,
+  `receipt_contract_address` string,
+  `receipt_root` string,
+  `receipt_status` int,
+  `receipt_effective_gas_price` bigint,
+  `item_id` string,
+  `item_timestamp` string)
+ROW FORMAT SERDE
+  'org.openx.data.jsonserde.JsonSerDe'
 WITH SERDEPROPERTIES (
-    'serialization.format' = ',',
-    'field.delim' = ',',
-    'escape.delim' = '\\'
-)
-STORED AS TEXTFILE
-LOCATION 's3://<your_bucket>/ethereumetl/export/transactions'
+  'paths'='block_hash,block_number,block_timestamp,from_address,gas,gas_price,hash,input,item_id,item_timestamp,max_fee_per_gas,max_priority_fee_per_gas,nonce,receipt_contract_address,receipt_cumulative_gas_used,receipt_effective_gas_price,receipt_gas_used,receipt_root,receipt_status,to_address,transaction_index,transaction_type,value')
+STORED AS INPUTFORMAT
+  'org.apache.hadoop.mapred.TextInputFormat'
+OUTPUTFORMAT
+  'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+LOCATION
+  's3://<your bucket>/tables/transaction/'
 TBLPROPERTIES (
-  'skip.header.line.count' = '1'
-);
-
-MSCK REPAIR TABLE transactions;
+  'classification'='json',
+  'compressionType'='none'
+)

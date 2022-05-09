@@ -1,34 +1,36 @@
-CREATE EXTERNAL TABLE IF NOT EXISTS blocks (
-    number BIGINT,
-    hash STRING,
-    parent_hash STRING,
-    nonce STRING,
-    sha3_uncles STRING,
-    logs_bloom STRING,
-    transactions_root STRING,
-    state_root STRING,
-    receipts_root STRING,
-    miner STRING,
-    difficulty DECIMAL(38,0),
-    total_difficulty DECIMAL(38,0),
-    size BIGINT,
-    extra_data STRING,
-    gas_limit BIGINT,
-    gas_used BIGINT,
-    timestamp BIGINT,
-    transaction_count BIGINT
-)
-PARTITIONED BY (start_block BIGINT, end_block BIGINT)
-ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'
-WITH SERDEPROPERTIES (
-    'serialization.format' = ',',
-    'field.delim' = ',',
-    'escape.delim' = '\\'
-)
-STORED AS TEXTFILE
-LOCATION 's3://<your_bucket>/ethereumetl/export/blocks'
+CREATE EXTERNAL TABLE `ethereum.block`(
+  `number` bigint,
+  `hash` string, 
+  `parent_hash` string, 
+  `nonce` string, 
+  `sha3_uncles` string, 
+  `logs_bloom` string, 
+  `transactions_root` string, 
+  `state_root` string, 
+  `receipts_root` string, 
+  `miner` string, 
+  `difficulty` decimal(38,0),
+  `total_difficulty` decimal(38,0),
+  `size` bigint, 
+  `extra_data` string, 
+  `gas_limit` bigint, 
+  `gas_used` bigint, 
+  `timestamp` bigint, 
+  `transaction_count` bigint, 
+  `base_fee_per_gas` string, 
+  `item_id` string, 
+  `item_timestamp` string)
+ROW FORMAT SERDE 
+  'org.openx.data.jsonserde.JsonSerDe' 
+WITH SERDEPROPERTIES ( 
+  'paths'='base_fee_per_gas,difficulty,extra_data,gas_limit,gas_used,hash,item_id,item_timestamp,logs_bloom,miner,nonce,number,parent_hash,receipts_root,sha3_uncles,size,state_root,timestamp,total_difficulty,transaction_count,transactions_root')
+STORED AS INPUTFORMAT 
+  'org.apache.hadoop.mapred.TextInputFormat' 
+OUTPUTFORMAT 
+  'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+LOCATION
+  's3://<your bucket>/tables/block'
 TBLPROPERTIES (
-  'skip.header.line.count' = '1'
-);
-
-MSCK REPAIR TABLE blocks;
+  'classification'='json', 
+  'compressionType'='none'
+)
