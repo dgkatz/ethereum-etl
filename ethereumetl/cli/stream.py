@@ -21,11 +21,12 @@
 # SOFTWARE.
 import logging
 import random
+import sys
 
 import click
+
 from blockchainetl.streaming.streaming_utils import configure_signals, configure_logging
 from ethereumetl.enumeration.entity_type import EntityType
-
 from ethereumetl.providers.auto import get_provider_from_uri
 from ethereumetl.streaming.item_exporter_creator import create_item_exporters
 from ethereumetl.thread_local_proxy import ThreadLocalProxy
@@ -52,9 +53,12 @@ from ethereumetl.thread_local_proxy import ThreadLocalProxy
 @click.option('-w', '--max-workers', default=5, show_default=True, type=int, help='The number of workers')
 @click.option('--log-file', default=None, show_default=True, type=str, help='Log file')
 @click.option('--pid-file', default=None, show_default=True, type=str, help='pid file')
+@click.option('--recursion-limit', default=None, type=int, help='modify python interpreter recursion limit. useful for parsing highly nested json responses from geth.')
 def stream(last_synced_block_file, lag, provider_uri, output, start_block, entity_types,
-           period_seconds=10, batch_size=2, block_batch_size=10, max_workers=5, log_file=None, pid_file=None):
+           period_seconds=10, batch_size=2, block_batch_size=10, max_workers=5, log_file=None, pid_file=None, recursion_limit=None):
     """Streams all data types to console or Google Pub/Sub."""
+    if recursion_limit:
+        sys.setrecursionlimit(recursion_limit)
     configure_logging(log_file)
     configure_signals()
     entity_types = parse_entity_types(entity_types)
