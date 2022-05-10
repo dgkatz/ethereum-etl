@@ -21,7 +21,9 @@
 # SOFTWARE.
 
 import json
+import logging
 
+from ethereumetl.misc.retriable_value_error import RetriableValueError
 from ethereumetl.executors.batch_work_executor import BatchWorkExecutor
 from ethereumetl.json_rpc_requests import generate_trace_block_by_number_json_rpc
 from blockchainetl.jobs.base_job import BaseJob
@@ -73,10 +75,31 @@ class ExportGethTracesJob(BaseJob):
         for response_item in response:
             block_number = response_item.get('id')
             result = rpc_response_to_result(response_item)
+            transaction_traces = []
+            for tx_trace in result:
+                if 'error' in tx_trace:
+                    # Handle responses like:
+                    # [{
+                    #     error: "execution timeout"
+                    # }, {
+                    #     result: {
+                    #       from: "0x3143e1cabc3547acde8b630e0dea3b1dfebb3cb0",
+                    #       gas: "0x10d88",
+                    #       gasUsed: "0x0",
+                    #       input: "0x",
+                    #       output: "0x",
+                    #       to: "0xf8165fe1c2cc5360049e2b9c6bd88432a01c0d24",
+                    #       type: "CALL",
+                    #       value: "0xb1a2bc2ec50000"
+                    #     }
+                    # }]
+                    logging.error(f"Response contains a error: {tx_trace['error']}")
+                    raise RetriableValueError(tx_trace['error'])
+                transaction_traces.append(tx_trace.get('result'))
 
             geth_trace = self.geth_trace_mapper.json_dict_to_geth_trace({
                 'block_number': block_number,
-                'transaction_traces': [tx_trace.get('result') for tx_trace in result],
+                'transaction_traces': transaction_traces,
             })
 
             self.item_exporter.export_item(self.geth_trace_mapper.geth_trace_to_dict(geth_trace))
