@@ -54,11 +54,13 @@ class ExtractContractsFromReceiptsJob(BaseJob):
         self.batch_work_executor.execute(self.receipts_iterable, self._extract_contracts)
 
     def _extract_contracts(self, receipts):
-        contract_addresses = [receipt['contract_address']
-                              for receipt in receipts
-                              if receipt['status'] == 1 and receipt['contract_address']]
-        if not contract_addresses:
+        contract_addresses_and_block_numbers = [(receipt['contract_address'], receipt['block_number'])
+                                                for receipt in receipts
+                                                if receipt['status'] == 1 and receipt['contract_address']]
+
+        if not contract_addresses_and_block_numbers:
             return
+        contract_addresses, block_numbers = zip(*contract_addresses_and_block_numbers)
         contracts_code_rpc = list(generate_get_code_json_rpc(contract_addresses))
         response_batch = self.batch_web3_provider.make_batch_request(json.dumps(contracts_code_rpc))
 
@@ -67,12 +69,14 @@ class ExtractContractsFromReceiptsJob(BaseJob):
             request_id = response['id']
             result = rpc_response_to_result(response)
             contract_address = contract_addresses[request_id]
+            block_number = block_numbers[request_id]
             contract = self.contract_mapper.rpc_result_to_contract(contract_address, result)
             bytecode = contract.bytecode
             function_sighashes = self.contract_service.get_function_sighashes(bytecode)
             contract.function_sighashes = function_sighashes
             contract.is_erc20 = self.contract_service.is_erc20_contract(function_sighashes)
             contract.is_erc721 = self.contract_service.is_erc721_contract(function_sighashes)
+            contract.block_number = block_number
 
             self.item_exporter.export_item(self.contract_mapper.contract_to_dict(contract))
 
