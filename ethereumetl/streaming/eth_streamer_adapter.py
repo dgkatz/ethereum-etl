@@ -5,9 +5,9 @@ from blockchainetl.jobs.exporters.in_memory_item_exporter import InMemoryItemExp
 from ethereumetl.enumeration.entity_type import EntityType
 from ethereumetl.jobs.export_blocks_job import ExportBlocksJob
 from ethereumetl.jobs.export_geth_traces_job import ExportGethTracesJob
-from ethereumetl.jobs.extract_geth_traces_job import ExtractGethTracesJob
 from ethereumetl.jobs.export_receipts_job import ExportReceiptsJob
-from ethereumetl.jobs.extract_contracts_job import ExtractContractsJob
+from ethereumetl.jobs.extract_contracts_from_receipts import ExtractContractsFromReceiptsJob
+from ethereumetl.jobs.extract_geth_traces_job import ExtractGethTracesJob
 from ethereumetl.jobs.extract_token_transfers_job import ExtractTokenTransfersJob
 from ethereumetl.jobs.extract_tokens_job import ExtractTokensJob
 from ethereumetl.streaming.enrich import enrich_transactions, enrich_logs, enrich_token_transfers, enrich_traces, \
@@ -65,7 +65,7 @@ class EthStreamerAdapter:
         # Export contracts
         contracts = []
         if self._should_export(EntityType.CONTRACT):
-            contracts = self._export_contracts(traces)
+            contracts = self._export_contracts(receipts)
 
         # Export tokens
         tokens = []
@@ -170,11 +170,12 @@ class EthStreamerAdapter:
         traces = traces_exporter.get_items('trace')
         return traces
 
-    def _export_contracts(self, traces):
+    def _export_contracts(self, receipts):
         exporter = InMemoryItemExporter(item_types=['contract'])
-        job = ExtractContractsJob(
-            traces_iterable=traces,
+        job = ExtractContractsFromReceiptsJob(
+            receipts_iterable=receipts,
             batch_size=self.batch_size,
+            batch_web3_provider=self.batch_web3_provider,
             max_workers=self.max_workers,
             item_exporter=exporter
         )
@@ -211,7 +212,7 @@ class EthStreamerAdapter:
             return EntityType.TOKEN_TRANSFER in self.entity_types
 
         if entity_type == EntityType.TRACE:
-            return EntityType.TRACE in self.entity_types or self._should_export(EntityType.CONTRACT)
+            return EntityType.TRACE in self.entity_types
 
         if entity_type == EntityType.CONTRACT:
             return EntityType.CONTRACT in self.entity_types or self._should_export(EntityType.TOKEN)

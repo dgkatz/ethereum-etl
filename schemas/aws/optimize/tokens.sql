@@ -10,6 +10,6 @@ select
 	block_hash,
 	item_id,
 	item_timestamp
-from ethereum.token where block_number > (select coalesce(max(block_number), 0) from ethereum_optimized.token)
+from ethereum.token where block_number > (select coalesce(max(block_number), 0) from ethereum_optimized.token);
 
-OPTIMIZE token REWRITE DATA USING BIN_PACK
+OPTIMIZE token REWRITE DATA USING BIN_PACK;

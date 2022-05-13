@@ -23,6 +23,6 @@ select
 	block_hash,
 	item_id,
 	item_timestamp
-from ethereum.trace where block_number > (select coalesce(max(block_number), 0) from ethereum_optimized.trace)
+from ethereum.trace where block_number > (select coalesce(max(block_number), 0) from ethereum_optimized.trace);
 
-OPTIMIZE trace REWRITE DATA USING BIN_PACK
+OPTIMIZE trace REWRITE DATA USING BIN_PACK;

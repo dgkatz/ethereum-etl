@@ -23,6 +23,6 @@ select
 	receipt_effective_gas_price,
 	item_id,
 	item_timestamp
-from ethereum.transaction where block_number > (select coalesce(max(block_number), 0) from ethereum_optimized.transaction)
+from ethereum.transaction where block_number > (select coalesce(max(block_number), 0) from ethereum_optimized.transaction);
 
-OPTIMIZE transaction REWRITE DATA USING BIN_PACK
+OPTIMIZE transaction REWRITE DATA USING BIN_PACK;
