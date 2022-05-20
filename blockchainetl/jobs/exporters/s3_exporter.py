@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Iterator
+from typing import Iterator, Dict, List
 
 import pandas as pd
 import pyarrow as pa
@@ -62,7 +62,7 @@ def item_type_to_pyarrow_schema(item_type: str):
         return athena_schema_to_pyarrow(athena_schema={'token_address': 'string', 'from_address': 'string', 'to_address': 'string', 'value': 'string', 'transaction_hash': 'string', 'log_index': 'bigint', 'block_number': 'bigint', 'block_timestamp': 'bigint', 'block_hash': 'string', 'item_id': 'string', 'item_timestamp': 'string'})
 
 
-def athena_schema_to_pyarrow(athena_schema: dict[str, str]) -> pa.Schema:
+def athena_schema_to_pyarrow(athena_schema: Dict[str, str]) -> pa.Schema:
     schema = []
     for column, athena_type in athena_schema.items():
         schema.append(pa.field(name=column.lower(), type=_athena_dtype_to_pyarrow(athena_type)))
@@ -114,7 +114,7 @@ def _athena_dtype_to_pyarrow(dtype: str) -> pa.DataType:
     raise Exception(f"Unsupported Athena type: {dtype}")
 
 
-def _split_map(s: str) -> list[str]:
+def _split_map(s: str) -> List[str]:
     parts: list[str] = list(_split_fields(s=s))
     if len(parts) != 2:
         raise RuntimeError(f"Invalid map fields: {s}")
