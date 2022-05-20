@@ -22,6 +22,8 @@
 
 import json
 import logging
+import os
+from threading import Lock
 
 from ethereumetl.misc.retriable_value_error import RetriableValueError
 from ethereumetl.executors.batch_work_executor import BatchWorkExecutor
@@ -51,16 +53,37 @@ class ExportGethTracesJob(BaseJob):
         self.item_exporter = item_exporter
 
         self.geth_trace_mapper = EthGethTraceMapper()
+        self.cache_file = "geth_traces_cache.json"
+        self.cache_file_lock = Lock()
+        self.blocks_exported = set()
+        self.blocks_exported_lock = Lock()
 
     def _start(self):
         self.item_exporter.open()
 
     def _export(self):
+        traces_from_cache = self._get_traces_from_cache()
+        for block_trace in traces_from_cache:
+            block_number = block_trace['block_number']
+            self.blocks_exported.add(block_number)
+            self.item_exporter.export_item(block_trace)
+
+        blocks_to_export = list(range(self.start_block, self.end_block + 1))
+        blocks_to_export = list(set(blocks_to_export).difference(self.blocks_exported))
+
         self.batch_work_executor.execute(
-            range(self.start_block, self.end_block + 1),
+            blocks_to_export,
             self._export_batch,
-            total_items=self.end_block - self.start_block + 1
+            total_items=len(blocks_to_export)
         )
+
+    def _get_traces_from_cache(self) -> list:
+        try:
+            with self.cache_file_lock, open(self.cache_file, "r") as cache_fp:
+                geth_traces = json.load(cache_fp)
+        except FileNotFoundError:
+            return []
+        return geth_traces
 
     def _export_batch(self, block_number_batch):
         # Remove untraceable blocks
@@ -69,13 +92,22 @@ class ExportGethTracesJob(BaseJob):
         if DAOFORK_BLOCK_NUMBER in block_number_batch:
             block_number_batch.remove(DAOFORK_BLOCK_NUMBER)
 
+        # Remove blocks already exported
+        with self.blocks_exported_lock:
+            block_number_batch = list(set(block_number_batch).difference(self.blocks_exported))
+
+        if not block_number_batch:
+            return
+
         trace_block_rpc = list(generate_trace_block_by_number_json_rpc(block_number_batch))
         response = self.batch_web3_provider.make_batch_request(json.dumps(trace_block_rpc))
 
+        failed_blocks = []
         for response_item in response:
             block_number = response_item.get('id')
             result = rpc_response_to_result(response_item)
             transaction_traces = []
+            failed = False
             for tx_trace in result:
                 if 'error' in tx_trace:
                     # Handle responses like:
@@ -93,17 +125,38 @@ class ExportGethTracesJob(BaseJob):
                     #       value: "0xb1a2bc2ec50000"
                     #     }
                     # }]
-                    logging.error(f"Response contains a error: {tx_trace['error']}")
-                    raise RetriableValueError(tx_trace['error'])
+                    failed = tx_trace['error']
+                    break
                 transaction_traces.append(tx_trace.get('result'))
+
+            if failed:
+                failed_blocks.append(block_number)
+                logging.error(f"Response for block {block_number} contains a error: {failed}")
+                continue
 
             geth_trace = self.geth_trace_mapper.json_dict_to_geth_trace({
                 'block_number': block_number,
                 'transaction_traces': transaction_traces,
             })
-
             self.item_exporter.export_item(self.geth_trace_mapper.geth_trace_to_dict(geth_trace))
+            with self.blocks_exported_lock:
+                self.blocks_exported.add(block_number)
+
+        if failed_blocks:
+            raise RetriableValueError(
+                f"Failed to export traces for {len(failed_blocks)} blocks: {', '.join(map(str, failed_blocks))}")
 
     def _end(self):
-        self.batch_work_executor.shutdown()
-        self.item_exporter.close()
+        try:
+            self.batch_work_executor.shutdown()
+        except Exception as exc:
+            with self.cache_file_lock, open(self.cache_file, "w") as cache_fp:
+                cache_fp.write(json.dumps(self.item_exporter.get_items('trace')))
+            raise exc
+        else:
+            try:
+                os.remove(self.cache_file)
+            except FileNotFoundError:
+                pass
+        finally:
+            self.item_exporter.close()

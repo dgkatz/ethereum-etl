@@ -19,7 +19,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
+import hashlib
 
 from ethereumetl.domain.trace import EthTrace
 from ethereumetl.mainnet_daofork_state_changes import DAOFORK_BLOCK_NUMBER
@@ -158,7 +158,7 @@ class EthTraceMapper(object):
 
         trace.subtraces = len(calls)
         trace.trace_address = trace_address
-
+        trace.trace_id = hash_trace_props(block_number, tx_index, trace_address)
         for call_index, call_trace in enumerate(calls):
             result.extend(self._iterate_transaction_trace(
                 block_number,
@@ -192,3 +192,7 @@ class EthTraceMapper(object):
             'trace_id': trace.trace_id,
             'trace_index': trace.trace_index,
         }
+
+
+def hash_trace_props(block_numer: int, tx_index: int, trace_address: list) -> str:
+    return hashlib.sha256(f"{block_numer}{tx_index}{str(trace_address)}".encode("utf-8")).hexdigest()
