@@ -45,7 +45,7 @@ from ethereumetl.thread_local_proxy import ThreadLocalProxy
                    'or kafka, output name and connection host:port e.g. kafka/127.0.0.1:9092 '
                    'If not specified will print to console')
 @click.option('-s', '--start-block', default=None, show_default=True, type=int, help='Start block')
-@click.option('-e', '--end-block', default=None, show_default=True, type=int, help='End block')
+@click.option('--end-block', default=None, show_default=True, type=int, help='End block')
 @click.option('-e', '--entity-types', default=','.join(EntityType.ALL_FOR_INFURA), show_default=True, type=str,
               help='The list of entity types to export.')
 @click.option('--period-seconds', default=10, show_default=True, type=int, help='How many seconds to sleep between syncs')
