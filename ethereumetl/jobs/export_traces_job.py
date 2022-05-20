@@ -49,7 +49,7 @@ class ExportTracesJob(BaseJob):
         self.web3 = web3
 
         # TODO: use batch_size when this issue is fixed https://github.com/paritytech/parity-ethereum/issues/9822
-        self.batch_work_executor = BatchWorkExecutor(1, max_workers)
+        self.batch_work_executor = BatchWorkExecutor(1, max_workers, work_name='ExportTracesJob')
         self.item_exporter = item_exporter
 
         self.trace_mapper = EthTraceMapper()

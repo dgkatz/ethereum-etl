@@ -42,7 +42,9 @@ setup(
         'base58',
         'requests',
         'boto3==1.21.46',
-        'requests-auth-aws-sigv4==0.7'
+        'requests-auth-aws-sigv4==0.7',
+        'pyarrow==8.0.0',
+        'pandas==1.3.5'
     ],
     extras_require={
         'streaming': [

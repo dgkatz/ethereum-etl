@@ -37,7 +37,7 @@ class ExtractGethTracesJob(BaseJob):
             item_exporter):
         self.traces_iterable = traces_iterable
 
-        self.batch_work_executor = BatchWorkExecutor(batch_size, max_workers)
+        self.batch_work_executor = BatchWorkExecutor(batch_size, max_workers, work_name='ExtractGethTracesJob')
         self.item_exporter = item_exporter
 
         self.trace_mapper = EthTraceMapper()

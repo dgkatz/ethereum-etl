@@ -41,7 +41,7 @@ class ExtractContractsFromReceiptsJob(BaseJob):
         self.batch_web3_provider = batch_web3_provider
         self.receipts_iterable = receipts_iterable
 
-        self.batch_work_executor = BatchWorkExecutor(batch_size, max_workers)
+        self.batch_work_executor = BatchWorkExecutor(batch_size, max_workers, work_name='ExtractContractsFromReceiptsJob')
         self.item_exporter = item_exporter
 
         self.contract_service = EthContractService()

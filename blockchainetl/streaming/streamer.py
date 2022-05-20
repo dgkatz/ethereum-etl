@@ -95,8 +95,11 @@ class Streamer:
             current_block, target_block, self.last_synced_block, blocks_to_sync))
 
         if blocks_to_sync != 0:
+            start = time.time()
             self.blockchain_streamer_adapter.export_all(self.last_synced_block + 1, target_block)
+            end = time.time()
             logging.info('Writing last synced block {}'.format(target_block))
+            logging.info(f"Sync cycle with {self.block_batch_size} batch size took {int(end - start)} seconds.")
             write_last_synced_block(self.last_synced_block_file, target_block)
             self.last_synced_block = target_block
 
