@@ -141,8 +141,8 @@ def enrich_token_transfers(blocks, token_transfers):
     return result
 
 
-def enrich_traces(blocks, traces):
-    result = list(join(
+def enrich_traces(blocks, transactions, traces):
+    block_enhanced_traces = list(join(
         traces, blocks, ('block_number', 'number'),
         [
             'type',
@@ -171,10 +171,16 @@ def enrich_traces(blocks, traces):
             ('hash', 'block_hash'),
         ]))
 
-    if len(result) != len(traces):
-        raise ValueError('The number of traces is wrong ' + str(result))
+    tx_index_hash_map = defaultdict(dict)
+    for tx in transactions:
+        tx_index_hash_map[tx['block_number']][tx['transaction_index']] = tx['hash']
+    for trace in block_enhanced_traces:
+        trace['transaction_hash'] = tx_index_hash_map[trace['block_number']][trace['transaction_index']]
 
-    return result
+    if len(block_enhanced_traces) != len(traces):
+        raise ValueError('The number of traces is wrong ')
+
+    return block_enhanced_traces
 
 
 def enrich_contracts(blocks, contracts):
