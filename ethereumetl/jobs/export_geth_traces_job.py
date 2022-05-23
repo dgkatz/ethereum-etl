@@ -24,6 +24,7 @@ import json
 import logging
 import os
 from threading import Lock
+from web3.utils.threads import Timeout
 
 from ethereumetl.misc.retriable_value_error import RetriableValueError
 from ethereumetl.executors.batch_work_executor import BatchWorkExecutor
@@ -100,8 +101,11 @@ class ExportGethTracesJob(BaseJob):
             return
 
         trace_block_rpc = list(generate_trace_block_by_number_json_rpc(block_number_batch))
-        response = self.batch_web3_provider.make_batch_request(json.dumps(trace_block_rpc))
-
+        try:
+            response = self.batch_web3_provider.make_batch_request(json.dumps(trace_block_rpc))
+        except Timeout as exc:
+            logging.info(f"Request timed out: {trace_block_rpc}")
+            raise exc
         failed_blocks = []
         for response_item in response:
             block_number = response_item.get('id')
