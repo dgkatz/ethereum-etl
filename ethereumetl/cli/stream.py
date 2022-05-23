@@ -55,8 +55,10 @@ from ethereumetl.thread_local_proxy import ThreadLocalProxy
 @click.option('--log-file', default=None, show_default=True, type=str, help='Log file')
 @click.option('--pid-file', default=None, show_default=True, type=str, help='pid file')
 @click.option('--recursion-limit', default=None, type=int, help='modify python interpreter recursion limit. useful for parsing highly nested json responses from geth.')
+@click.option('--rpc-timeout', default=60, type=int, help='Time allowed before failing a RPC request.')
 def stream(last_synced_block_file, lag, provider_uri, output, start_block, end_block, entity_types,
-           period_seconds=10, batch_size=2, block_batch_size=10, max_workers=5, log_file=None, pid_file=None, recursion_limit=None):
+           period_seconds=10, batch_size=2, block_batch_size=10, max_workers=5, log_file=None, pid_file=None,
+           recursion_limit=None, rpc_timeout=None):
     """Streams all data types to console or Google Pub/Sub."""
     if recursion_limit:
         sys.setrecursionlimit(recursion_limit)
@@ -73,7 +75,7 @@ def stream(last_synced_block_file, lag, provider_uri, output, start_block, end_b
     logging.info('Using ' + provider_uri)
 
     streamer_adapter = EthStreamerAdapter(
-        batch_web3_provider=ThreadLocalProxy(lambda: get_provider_from_uri(provider_uri, batch=True)),
+        batch_web3_provider=ThreadLocalProxy(lambda: get_provider_from_uri(provider_uri, timeout=rpc_timeout, batch=True)),
         item_exporter=create_item_exporters(output),
         batch_size=batch_size,
         max_workers=max_workers,
