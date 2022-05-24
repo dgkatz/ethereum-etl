@@ -57,6 +57,8 @@ class BatchIPCProvider(IPCProvider):
                 sock = self._socket.reset()
                 sock.sendall(request)
 
+            sock.settimeout(10)
+
             raw_response = b""
             with Timeout(self.timeout) as timeout:
                 while True:

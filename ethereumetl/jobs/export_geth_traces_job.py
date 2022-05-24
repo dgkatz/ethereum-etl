@@ -24,15 +24,15 @@ import json
 import logging
 import os
 from threading import Lock
-from web3.utils.threads import Timeout
 
-from ethereumetl.misc.retriable_value_error import RetriableValueError
+from blockchainetl.jobs.base_job import BaseJob
 from ethereumetl.executors.batch_work_executor import BatchWorkExecutor
 from ethereumetl.json_rpc_requests import generate_trace_block_by_number_json_rpc
-from blockchainetl.jobs.base_job import BaseJob
-from ethereumetl.mappers.geth_trace_mapper import EthGethTraceMapper
-from ethereumetl.utils import validate_range, rpc_response_to_result
 from ethereumetl.mainnet_daofork_state_changes import DAOFORK_BLOCK_NUMBER
+from ethereumetl.mappers.geth_trace_mapper import EthGethTraceMapper
+from ethereumetl.misc.retriable_value_error import RetriableValueError
+from ethereumetl.utils import validate_range, rpc_response_to_result
+
 
 # Exports geth traces
 class ExportGethTracesJob(BaseJob):
