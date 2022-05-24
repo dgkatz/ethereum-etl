@@ -50,7 +50,7 @@ class ExportGethTracesJob(BaseJob):
 
         self.batch_web3_provider = batch_web3_provider
 
-        self.batch_work_executor = BatchWorkExecutor(batch_size, max_workers, work_name='ExportGethTracesJob')
+        self.batch_work_executor = BatchWorkExecutor(1, max_workers, work_name='ExportGethTracesJob')
         self.item_exporter = item_exporter
 
         self.geth_trace_mapper = EthGethTraceMapper()
@@ -101,11 +101,8 @@ class ExportGethTracesJob(BaseJob):
             return
 
         trace_block_rpc = list(generate_trace_block_by_number_json_rpc(block_number_batch))
-        try:
-            response = self.batch_web3_provider.make_batch_request(json.dumps(trace_block_rpc))
-        except Timeout as exc:
-            logging.info(f"Request timed out: {trace_block_rpc}")
-            raise exc
+        response = self.batch_web3_provider.make_batch_request(json.dumps(trace_block_rpc))
+
         failed_blocks = []
         for response_item in response:
             block_number = response_item.get('id')
