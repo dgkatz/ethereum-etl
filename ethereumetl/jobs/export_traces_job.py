@@ -19,16 +19,17 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import json
 
-from ethereumetl.executors.batch_work_executor import BatchWorkExecutor
 from blockchainetl.jobs.base_job import BaseJob
+from ethereumetl.executors.batch_work_executor import BatchWorkExecutor
+from ethereumetl.json_rpc_requests import generate_trace_block_by_number_json_rpc
 from ethereumetl.mainnet_daofork_state_changes import DAOFORK_BLOCK_NUMBER
 from ethereumetl.mappers.trace_mapper import EthTraceMapper
 from ethereumetl.service.eth_special_trace_service import EthSpecialTraceService
-
 from ethereumetl.service.trace_id_calculator import calculate_trace_ids
 from ethereumetl.service.trace_status_calculator import calculate_trace_statuses
-from ethereumetl.utils import validate_range
+from ethereumetl.utils import validate_range, rpc_response_to_result
 
 
 class ExportTracesJob(BaseJob):
@@ -37,7 +38,7 @@ class ExportTracesJob(BaseJob):
             start_block,
             end_block,
             batch_size,
-            web3,
+            batch_web3_provider,
             item_exporter,
             max_workers,
             include_genesis_traces=False,
@@ -46,10 +47,10 @@ class ExportTracesJob(BaseJob):
         self.start_block = start_block
         self.end_block = end_block
 
-        self.web3 = web3
+        self.batch_web3_provider = batch_web3_provider
 
         # TODO: use batch_size when this issue is fixed https://github.com/paritytech/parity-ethereum/issues/9822
-        self.batch_work_executor = BatchWorkExecutor(1, max_workers, work_name='ExportTracesJob')
+        self.batch_work_executor = BatchWorkExecutor(batch_size, max_workers, work_name='ExportTracesJob')
         self.item_exporter = item_exporter
 
         self.trace_mapper = EthTraceMapper()
@@ -69,11 +70,6 @@ class ExportTracesJob(BaseJob):
         )
 
     def _export_batch(self, block_number_batch):
-        # TODO: Change to len(block_number_batch) > 0 when this issue is fixed
-        # https://github.com/paritytech/parity-ethereum/issues/9822
-        assert len(block_number_batch) == 1
-        block_number = block_number_batch[0]
-
         all_traces = []
 
         if self.include_genesis_traces and 0 in block_number_batch:
@@ -84,15 +80,16 @@ class ExportTracesJob(BaseJob):
             daofork_traces = self.special_trace_service.get_daofork_traces()
             all_traces.extend(daofork_traces)
 
-        # TODO: Change to traceFilter when this issue is fixed
-        # https://github.com/paritytech/parity-ethereum/issues/9822
-        json_traces = self.web3.parity.traceBlock(block_number)
+        trace_block_rpc = list(generate_trace_block_by_number_json_rpc(block_number_batch))
+        response = self.batch_web3_provider.make_batch_request(json.dumps(trace_block_rpc))
 
-        if json_traces is None:
+        if response is None:
             raise ValueError('Response from the node is None. Is the node fully synced? Is the node started with tracing enabled? Is trace_block API enabled?')
 
-        traces = [self.trace_mapper.json_dict_to_trace(json_trace) for json_trace in json_traces]
-        all_traces.extend(traces)
+        for response_item in response:
+            json_traces = rpc_response_to_result(response_item)
+            traces = [self.trace_mapper.json_dict_to_trace(json_trace) for json_trace in json_traces]
+            all_traces.extend(traces)
 
         calculate_trace_statuses(all_traces)
         calculate_trace_ids(all_traces)

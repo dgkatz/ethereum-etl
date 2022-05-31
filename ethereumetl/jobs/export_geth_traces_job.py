@@ -27,7 +27,7 @@ from threading import Lock
 
 from blockchainetl.jobs.base_job import BaseJob
 from ethereumetl.executors.batch_work_executor import BatchWorkExecutor
-from ethereumetl.json_rpc_requests import generate_trace_block_by_number_json_rpc
+from ethereumetl.json_rpc_requests import generate_geth_trace_block_by_number_json_rpc
 from ethereumetl.mainnet_daofork_state_changes import DAOFORK_BLOCK_NUMBER
 from ethereumetl.mappers.geth_trace_mapper import EthGethTraceMapper
 from ethereumetl.misc.retriable_value_error import RetriableValueError
@@ -100,7 +100,7 @@ class ExportGethTracesJob(BaseJob):
         if not block_number_batch:
             return
 
-        trace_block_rpc = list(generate_trace_block_by_number_json_rpc(block_number_batch))
+        trace_block_rpc = list(generate_geth_trace_block_by_number_json_rpc(block_number_batch))
         response = self.batch_web3_provider.make_batch_request(json.dumps(trace_block_rpc))
 
         failed_blocks = []

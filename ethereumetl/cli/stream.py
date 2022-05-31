@@ -56,9 +56,10 @@ from ethereumetl.thread_local_proxy import ThreadLocalProxy
 @click.option('--pid-file', default=None, show_default=True, type=str, help='pid file')
 @click.option('--recursion-limit', default=None, type=int, help='modify python interpreter recursion limit. useful for parsing highly nested json responses from geth.')
 @click.option('--rpc-timeout', default=60, type=int, help='Time allowed before failing a RPC request.')
+@click.option('--enable-geth-tracing', default=False, type=bool, help='If true, use the geth debug module trace method, otherwise use the parity style trace_block method.')
 def stream(last_synced_block_file, lag, provider_uri, output, start_block, end_block, entity_types,
            period_seconds=10, batch_size=2, block_batch_size=10, max_workers=5, log_file=None, pid_file=None,
-           recursion_limit=None, rpc_timeout=None):
+           recursion_limit=None, rpc_timeout=None, enable_geth_tracing=False):
     """Streams all data types to console or Google Pub/Sub."""
     if recursion_limit:
         sys.setrecursionlimit(recursion_limit)
@@ -79,7 +80,8 @@ def stream(last_synced_block_file, lag, provider_uri, output, start_block, end_b
         item_exporter=create_item_exporters(output),
         batch_size=batch_size,
         max_workers=max_workers,
-        entity_types=entity_types
+        entity_types=entity_types,
+        enable_geth_tracing=enable_geth_tracing
     )
     streamer = Streamer(
         blockchain_streamer_adapter=streamer_adapter,
