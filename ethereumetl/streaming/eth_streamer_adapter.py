@@ -7,12 +7,13 @@ from ethereumetl.jobs.export_blocks_job import ExportBlocksJob
 from ethereumetl.jobs.export_geth_traces_job import ExportGethTracesJob
 from ethereumetl.jobs.export_receipts_job import ExportReceiptsJob
 from ethereumetl.jobs.export_traces_job import ExportTracesJob
+from ethereumetl.jobs.export_state_changes import ExportStateChangesJob
 from ethereumetl.jobs.extract_contracts_job import ExtractContractsJob
 from ethereumetl.jobs.extract_geth_traces_job import ExtractGethTracesJob
 from ethereumetl.jobs.extract_token_transfers_job import ExtractTokenTransfersJob
 from ethereumetl.jobs.extract_tokens_job import ExtractTokensJob
 from ethereumetl.streaming.enrich import enrich_transactions, enrich_logs, enrich_token_transfers, enrich_traces, \
-    enrich_contracts, enrich_tokens, enrich_traces_geth
+    enrich_contracts, enrich_tokens, enrich_traces_geth, enrich_account_state_changes
 from ethereumetl.streaming.eth_item_id_calculator import EthItemIdCalculator
 from ethereumetl.streaming.eth_item_timestamp_calculator import EthItemTimestampCalculator
 from ethereumetl.thread_local_proxy import ThreadLocalProxy
@@ -77,6 +78,11 @@ class EthStreamerAdapter:
         if self._should_export(EntityType.TOKEN):
             tokens = self._extract_tokens(contracts)
 
+        # Export account state changes
+        account_state_changes = []
+        if self._should_export(EntityType.ACCOUNT_STATE_CHANGE):
+            account_state_changes = self._export_account_state_changes(start_block=start_block, end_block=end_block)
+
         enriched_blocks = blocks \
             if EntityType.BLOCK in self.entity_types else []
         enriched_transactions = enrich_transactions(transactions, receipts) \
@@ -94,6 +100,8 @@ class EthStreamerAdapter:
             if EntityType.CONTRACT in self.entity_types else []
         enriched_tokens = enrich_tokens(blocks, tokens) \
             if EntityType.TOKEN in self.entity_types else []
+        enriched_account_state_changes = enrich_account_state_changes(blocks, account_state_changes) \
+            if EntityType.ACCOUNT_STATE_CHANGE in self.entity_types else []
 
         logging.info('Exporting with ' + type(self.item_exporter).__name__)
 
@@ -104,7 +112,8 @@ class EthStreamerAdapter:
             sort_by(enriched_token_transfers, ('block_number', 'log_index')) + \
             sort_by(enriched_traces, ('block_number', 'trace_index')) + \
             sort_by(enriched_contracts, ('block_number',)) + \
-            sort_by(enriched_tokens, ('block_number',))
+            sort_by(enriched_tokens, ('block_number',)) + \
+            sort_by(enriched_account_state_changes, ('block_number',))
 
         self.calculate_item_ids(all_items)
         self.calculate_item_timestamps(all_items)
@@ -168,6 +177,20 @@ class EthStreamerAdapter:
         export_traces_job.run()
         traces = exporter.get_items('trace')
         return traces
+
+    def _export_account_state_changes(self, start_block, end_block):
+        exporter = InMemoryItemExporter(item_types=['account_state_change'])
+        export_state_changes_job = ExportStateChangesJob(
+            start_block=start_block,
+            end_block=end_block,
+            batch_size=self.batch_size,
+            batch_web3_provider=self.batch_web3_provider,
+            item_exporter=exporter,
+            max_workers=self.max_workers
+        )
+        export_state_changes_job.run()
+        account_state_changes = exporter.get_items('account_state_change')
+        return account_state_changes
 
     def _export_geth_traces(self, start_block, end_block):
         geth_traces_exporter = InMemoryItemExporter(item_types=['trace'])
@@ -240,6 +263,9 @@ class EthStreamerAdapter:
 
         if entity_type == EntityType.TOKEN:
             return EntityType.TOKEN in self.entity_types
+
+        if entity_type == EntityType.ACCOUNT_STATE_CHANGE:
+            return EntityType.ACCOUNT_STATE_CHANGE in self.entity_types
 
         raise ValueError('Unexpected entity type ' + entity_type)
 

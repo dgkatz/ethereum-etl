@@ -47,6 +47,8 @@ class EthItemIdCalculator:
             return concat(item_type, item.get('block_number'), item.get('address'))
         elif item_type == 'token' and item.get('block_number') is not None and item.get('address') is not None:
             return concat(item_type, item.get('block_number'), item.get('address'))
+        elif item_type == 'account_state_change' and item.get('transaction_hash') is not None and item.get('account_address') is not None:
+            return concat(item_type, item.get('transaction_hash'), item.get('account_address'))
 
         # logging.warning('item_id for item {} is None'.format(json.dumps(item)))
 

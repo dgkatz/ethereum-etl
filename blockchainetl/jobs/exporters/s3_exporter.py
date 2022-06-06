@@ -3,6 +3,7 @@ from typing import Iterator, Dict, List
 
 import pandas as pd
 import pyarrow as pa
+import decimal
 
 
 class S3ItemExporter:
@@ -23,6 +24,8 @@ class S3ItemExporter:
             for col_name in pa_schema.names:
                 if pa_schema.field(col_name).type == 'string':
                     df[col_name] = df[col_name].astype(str)
+                elif isinstance(pa_schema.field(col_name).type, pa.Decimal128Type):
+                    df[col_name] = df[col_name].map(lambda val: decimal.Decimal(val) if val else None)
             df.to_parquet(destination_blob_name, engine="pyarrow", index=False, schema=pa_schema)
 
     def close(self):
@@ -60,6 +63,8 @@ def item_type_to_pyarrow_schema(item_type: str):
         return athena_schema_to_pyarrow(athena_schema={'address': 'string', 'symbol': 'string', 'name': 'string', 'decimals': 'bigint', 'total_supply': 'string', 'block_number': 'bigint', 'block_timestamp': 'bigint', 'block_hash': 'string', 'item_id': 'string', 'item_timestamp': 'string'})
     elif item_type == "token_transfer":
         return athena_schema_to_pyarrow(athena_schema={'token_address': 'string', 'from_address': 'string', 'to_address': 'string', 'value': 'string', 'transaction_hash': 'string', 'log_index': 'bigint', 'block_number': 'bigint', 'block_timestamp': 'bigint', 'block_hash': 'string', 'item_id': 'string', 'item_timestamp': 'string'})
+    elif item_type == "account_state_change":
+        return athena_schema_to_pyarrow(athena_schema={'transaction_hash': 'string', 'account_address': 'string', 'balance_before': 'decimal(38,9)', 'balance_after': 'decimal(38,9)', 'balance_change': 'decimal(38,9)', 'code_before': 'string', 'code_after': 'string', 'nonce_before': 'bigint', 'nonce_after': 'bigint', 'storage_before': 'map<string,string>', 'storage_after': 'map<string,string>'})
 
 
 def athena_schema_to_pyarrow(athena_schema: Dict[str, str]) -> pa.Schema:

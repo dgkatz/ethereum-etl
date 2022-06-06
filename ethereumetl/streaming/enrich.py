@@ -263,3 +263,32 @@ def enrich_tokens(blocks, tokens):
         raise ValueError('The number of tokens is wrong ' + str(result))
 
     return result
+
+
+def enrich_account_state_changes(blocks, account_state_changes):
+    result = list(join(
+        account_state_changes, blocks, ('block_number', 'number'),
+        [
+            'type',
+            'block_number',
+            'transaction_hash',
+            'account_address',
+            'balance_before',
+            'balance_after',
+            'balance_change',
+            'code_before',
+            'code_after',
+            'nonce_before',
+            'nonce_after',
+            'storage_before',
+            'storage_after'
+        ],
+        [
+            ('timestamp', 'block_timestamp'),
+            ('hash', 'block_hash'),
+        ]))
+
+    if len(result) != len(account_state_changes):
+        raise ValueError('The number of account_storage_changes is wrong ' + str(result))
+
+    return result
